@@ -1,25 +1,46 @@
-<!--start.wxml-->
-<view class="container">
-  <view class="remind-box" wx:if="{{remind}}">
-    <image class="remind-img" src="/images/more/loading.gif"></image>
+<!-- 启动页容器 -->
+<view wx:if="{{ banners }}" class="start-container">
+  <!-- 轮播图区域 -->
+  <swiper class="swiper_box" current="{{ swiperCurrent }}" bindchange="swiperchange" circular="{{true}}" autoplay="{{false}}" interval="5000" duration="500">
+    <swiper-item wx:for="{{banners}}" wx:key="id">
+      <view class="swiper-item-wrapper">
+        <image class="banner-image" mode="aspectFill" src="{{item.picUrl}}" />
+        <!-- 渐变遮罩 -->
+        <view class="image-mask"></view>
+      </view>
+    </swiper-item>
+  </swiper>
+
+  <!-- 左右切换按钮 -->
+  <view wx:if="{{ swiperMaxNumber > 1 }}" class="swiper-icon left-icon" bind:tap="goLeft">
+    <image src="/images/start-left.png" mode="widthFix"></image>
   </view>
-  <block wx:else>
-    <image class="title" src="/images/more/title8.png"></image>
-    <view class="content">
-      <view class="hd" style="transform:rotateZ({{angle}}deg);">
-        <image class="logo" src="{{userInfo.avatarUrl}}"></image>
-        <image class="wave" src="/images/more/wave.png" mode="aspectFill"></image>
-        <image class="wave wave-bg" src="/images/more/wave.png" mode="aspectFill"></image>
-      </view>
-      <view class="bd">
-        <image class="smalltitle" src="/images/more/confirm-word1.png"></image>
-        <form bindsubmit="goToIndex" report-submit="true">
-          <button class="confirm-btn" form-type="submit">
-            <text >进入店铺</text>
-          </button>
-        </form>
-        <text class="copyright">@qindiandadudu 贡献本页代码</text>
-      </view>
+  <view wx:if="{{ swiperMaxNumber > 1 }}" class="swiper-icon right-icon" bind:tap="goRight">
+    <image src="/images/start-right.png" mode="widthFix"></image>
+  </view>
+
+  <!-- 指示器 -->
+  <view wx:if="{{ swiperMaxNumber > 1 }}" class="dots-wrapper">
+    <view class="dots-container">
+      <view wx:for="{{banners}}" wx:key="id" class="dot {{index == swiperCurrent ? 'dot-active' : ''}}"></view>
     </view>
-  </block>
+  </view>
+
+  <!-- 底部进入按钮区域 -->
+  <view class="jump-btn-box">
+    <view class="jump-btn" bind:tap="goToIndex">
+      <text class="btn-text">立即进入</text>
+      <view class="btn-shine"></view>
+    </view>
+    <view class="skip-hint">精彩内容等你探索</view>
+  </view>
+</view>
+<view wx:else class="loading-container">
+  <!-- 加载动画容器 -->
+  <view class="loading-spinner-wrapper">
+    <view class="loading-spinner"></view>
+  </view>
+
+  <!-- 加载文字 -->
+  <view class="loading-text">加载中...</view>
 </view>

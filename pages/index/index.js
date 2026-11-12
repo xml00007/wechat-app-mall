@@ -1,55 +1,98 @@
-//index.js
-const api = require('../../utils/request.js')
+const WXAPI = require('apifm-wxapi')
+const TOOLS = require('../../utils/tools.js')
+const AUTH = require('../../utils/auth')
 const CONFIG = require('../../config.js')
-//获取应用实例
-var app = getApp()
+const APP = getApp()
+
 Page({
   data: {
-    indicatorDots: true,
-    autoplay: true,
-    interval: 3000,
-    duration: 1000,
+    inputVal: "", // 搜索框内容
+    goodsRecommend: [], // 推荐商品
+    kanjiaList: [], //砍价商品列表
+    pingtuanList: [], //拼团商品列表
     loadingHidden: false, // loading
-    userInfo: {},
-    swiperCurrent: 0,
     selectCurrent: 0,
     categories: [],
-    activeCategoryId: 0,
     goods: [],
-    scrollTop: 0,
     loadingMoreHidden: true,
-
-    hasNoCoupons: true,
     coupons: [],
-    searchInput: '',
-
     curPage: 1,
-    pageSize: 20
+    pageSize: 20,
+    indexCategories: [], // 分类专区（type == 'index' 的商品分类）
+    showBackTop: false,  // 是否显示返回顶部按钮
+    customerServiceType: CONFIG.customerServiceType,
   },
-
-  tabClick: function(e) {
-    this.setData({
-      activeCategoryId: e.currentTarget.id,
-      curPage: 1
-    });
-    this.getGoodsList(this.data.activeCategoryId);
+  tabClick(e) {
+    // 商品分类点击
+    const category = this.data.categories.find(ele => {
+      return ele.id == e.currentTarget.dataset.id
+    })
+    if (category.vopCid1 || category.vopCid2) {
+      wx.navigateTo({
+        url: '/pages/goods/list-vop?cid1=' + (category.vopCid1 ? category.vopCid1 : '') + '&cid2=' + (category.vopCid2 ? category.vopCid2 : ''),
+      })
+    } else {
+      wx.setStorageSync("_categoryId", category.id)
+      wx.switchTab({
+        url: '/pages/category/category',
+      })
+    }
   },
-  //事件处理函数
-  swiperchange: function(e) {
-    //console.log(e.detail.current)
-    this.setData({
-      swiperCurrent: e.detail.current
+  tabClickCms(e) {
+    // 文章分类点击
+    const category = this.data.cmsCategories[e.currentTarget.dataset.idx]
+    wx.navigateTo({
+      url: '/pages/cms/list?categoryId=' + category.id,
     })
   },
   toDetailsTap: function(e) {
-    wx.navigateTo({
-      url: "/pages/goods-details/index?id=" + e.currentTarget.dataset.id
-    })
-  },
-  tapBanner: function(e) {
-    if (e.currentTarget.dataset.id != 0) {
+    console.log(e);
+    const id = e.currentTarget.dataset.id
+    const supplytype = e.currentTarget.dataset.supplytype
+    const yyId = e.currentTarget.dataset.yyid
+    if (supplytype == 'cps_jd') {
       wx.navigateTo({
-        url: "/pages/goods-details/index?id=" + e.currentTarget.dataset.id
+        url: `/packageCps/pages/goods-details/cps-jd?id=${id}`,
+      })
+    } else if (supplytype == 'vop_jd') {
+      wx.navigateTo({
+        url: `/pages/goods-details/vop?id=${yyId}&goodsId=${id}`,
+      })
+    } else if (supplytype == 'cps_pdd') {
+      wx.navigateTo({
+        url: `/packageCps/pages/goods-details/cps-pdd?id=${id}`,
+      })
+    } else if (supplytype == 'cps_taobao') {
+      wx.navigateTo({
+        url: `/packageCps/pages/goods-details/cps-taobao?id=${id}`,
+      })
+    } else {
+      wx.navigateTo({
+        url: `/pages/goods-details/index?id=${id}`,
+      })
+    }
+  },
+  tapBanner(e) {
+    const item = e.currentTarget.dataset.item
+    if (item.linkType == 1) {
+      // 跳小程序
+      wx.navigateToMiniProgram({
+        appId: item.appid,
+        path: item.linkUrl || '',
+      })
+    } else {
+      if (item.linkUrl) {
+        wx.navigateTo({
+          url: item.linkUrl
+        })
+      }
+    }
+  },
+  adClick: function(e) {
+    const url = e.currentTarget.dataset.url
+    if (url) {
+      wx.navigateTo({
+        url
       })
     }
   },
@@ -58,207 +101,410 @@ Page({
       selectCurrent: e.index
     })
   },
-  onLoad: function() {
-    var that = this
-    wx.setNavigationBarTitle({
-      title: wx.getStorageSync('mallName')
+  onLoad: function(e) {
+    wx.showShareMenu({
+      withShareTicket: true,
     })
-    /**
-     * 示例：
-     * 调用接口封装方法
-     */
-    api.fetchRequest('/banner/list', {
-      key: 'mallName'
-    }).then(function(res) {
-      if (res.data.code == 404) {
-        wx.showModal({
-          title: '提示',
-          content: '请在后台添加 banner 轮播图片',
-          showCancel: false
-        })
-      } else {
-        that.setData({
-          banners: res.data.data
-        });
+    const that = this
+    // 读取分享链接中的邀请人编号
+    if (e && e.inviter_id) {
+      wx.setStorageSync('referrer', e.inviter_id)
+    }
+    // 读取小程序码中的邀请人编号
+    if (e && e.scene) {
+      const scene = decodeURIComponent(e.scene)
+      if (scene) {        
+        wx.setStorageSync('referrer', scene.substring(11))
       }
-    }).catch(function(res) {
-      wx.showToast({
-        title: res.data.msg,
-        icon: 'none'
-      })
-    })
-    api.fetchRequest('/shop/goods/category/all').then(function(res) {
-      var categories = [{
-        id: 0,
-        name: "全部"
-      }];
-      if (res.data.code == 0) {
-        for (var i = 0; i < res.data.data.length; i++) {
-          categories.push(res.data.data[i]);
+    }
+    AUTH.checkHasLogined().then(isLogined => {
+      if (isLogined) {
+        TOOLS.showTabBarBadge()
+      } else {
+        getApp().loginOK = () => {
+          TOOLS.showTabBarBadge()
         }
       }
-      that.setData({
-        categories: categories,
-        activeCategoryId: 0,
-        curPage: 1
-      });
-      that.getGoodsList(0);
     })
-    that.getCoupons();
-    that.getNotice();
+    this.initBanners()
+    this.cmsCategories()
+    // https://www.yuque.com/apifm/nu0f75/wg5t98
+    WXAPI.goodsv2({
+      recommendStatus: 1
+    }).then(res => {
+      if (res.code === 0){
+        that.setData({
+          goodsRecommend: res.data.result
+        })
+      }      
+    })
+    that.getCoupons()
+    that.getNotice()
+    that.kanjiaGoods()
+    that.pingtuanGoods()
+    this.adPosition()
+    // 读取系统参数
+    this.readConfigVal()
+    getApp().configLoadOK = () => {
+      this.readConfigVal()
+    }
   },
-  onPageScroll(e) {
-    let scrollTop = this.data.scrollTop
+  readConfigVal() {
+    const mallName = wx.getStorageSync('mallName')
+    if (!mallName) {
+      return
+    }
+    this.categories()
+    wx.setNavigationBarTitle({
+      title: mallName
+    })
     this.setData({
-      scrollTop: e.scrollTop
+      mallName:wx.getStorageSync('mallName')?wx.getStorageSync('mallName'):'',
+      show_buy_dynamic: wx.getStorageSync('show_buy_dynamic'),
+      hidden_goods_index: wx.getStorageSync('hidden_goods_index'),
     })
+    const shopMod = wx.getStorageSync('shopMod')
+    const shopInfo = wx.getStorageSync('shopInfo')
+    if (shopMod == '1' && !shopInfo) {
+      wx.redirectTo({
+        url: '/pages/shop/select'
+      })
+    }
   },
-  getGoodsList: function(categoryId, append) {
+  async miaoshaGoods(){
+    // https://www.yuque.com/apifm/nu0f75/wg5t98
+    const res = await WXAPI.goodsv2({
+      miaosha: true
+    })
+    if (res.code == 0) {
+      res.data.result.forEach(ele => {
+        const _now = new Date().getTime()
+        if (ele.dateStart) {
+          ele.dateStartInt = new Date(ele.dateStart.replace(/-/g, '/')).getTime() - _now
+        }
+        if (ele.dateEnd) {
+          ele.dateEndInt = new Date(ele.dateEnd.replace(/-/g, '/')).getTime() -_now
+        }
+      })
+      this.setData({
+        miaoshaGoods: res.data.result
+      })
+    }
+  },
+  async initBanners(){
+    const _data = {}
+    // 读取头部轮播图
+    const res1 = await WXAPI.banners({
+      type: 'index'
+    })
+    if (res1.code == 700) {
+      wx.showModal({
+        title: '提示',
+        content: '请在后台添加 banner 轮播图片，自定义类型填写 index',
+        showCancel: false
+      })
+    } else {
+      _data.banners = res1.data
+    }
+    this.setData(_data)
+  },
+  onShow: function(e){
+    this.setData({
+      navHeight: APP.globalData.navHeight,
+      navTop: APP.globalData.navTop,
+      windowHeight: APP.globalData.windowHeight,
+      menuButtonObject: APP.globalData.menuButtonObject //小程序胶囊信息
+    })
+    this.setData({
+      shopInfo: wx.getStorageSync('shopInfo')
+    })
+    // 获取购物车数据，显示TabBarBadge
+    TOOLS.showTabBarBadge()
+    this.goodsDynamicV2()
+    this.miaoshaGoods()
+    const refreshIndex = wx.getStorageSync('refreshIndex')
+    if (refreshIndex) {
+      this.onPullDownRefresh()
+      wx.removeStorageSync('refreshIndex')
+    }
+  },
+  async goodsDynamicV2(){
+    const res = await WXAPI.goodsDynamicV2({
+      type: 0
+    })
+    if (res.code == 0) {
+      this.setData({
+        goodsDynamicV2: res.data.result
+      })
+    }
+  },
+  async categories(){
+    const res = await WXAPI.goodsCategory()
+    let categories = [];
+    if (res.code == 0) {
+      const _categories = res.data.filter(ele => {
+        return ele.level == 1
+      })
+      categories = categories.concat(_categories)
+
+      // 筛选 type == 'index' 的分类，作为首页分类专区
+      const indexCats = res.data.filter(ele => ele.type == 'index')
+      if (indexCats.length > 0) {
+        this.loadIndexCategories(indexCats)
+      }
+    }
+    this.setData({
+      categories: categories,
+      curPage: 1
+    });
+    this.getGoodsList(0);
+  },
+  // 加载分类专区的商品
+  async loadIndexCategories(indexCats) {
+    const result = []
+    for (const cat of indexCats) {
+      const res = await WXAPI.goodsv2({
+        categoryId: cat.id,
+        page: 1,
+        pageSize: 10
+      })
+      if (res.code == 0 && res.data.result && res.data.result.length > 0) {
+        result.push({
+          ...cat,
+          goods: res.data.result
+        })
+      }
+    }
+    this.setData({ indexCategories: result })
+  },
+  async getGoodsList(categoryId, append) {
     if (categoryId == 0) {
       categoryId = "";
     }
-    var that = this;
     wx.showLoading({
-      "mask": true
+      title: ''
     })
-    api.fetchRequest('/shop/goods/list', {
+    // https://www.yuque.com/apifm/nu0f75/wg5t98
+    const res = await WXAPI.goodsv2({
       categoryId: categoryId,
-      nameLike: that.data.searchInput,
       page: this.data.curPage,
       pageSize: this.data.pageSize
-    }).then(function(res) {
-      wx.hideLoading()
-      if (res.data.code == 404 || res.data.code == 700) {
-        let newData = {
-          loadingMoreHidden: false
-        }
-        if (!append) {
-          newData.goods = []
-        }
-        that.setData(newData);
-        return
-      }
-      let goods = [];
-      if (append) {
-        goods = that.data.goods
-      }
-      for (var i = 0; i < res.data.data.length; i++) {
-        goods.push(res.data.data[i]);
-      }
-      that.setData({
-        loadingMoreHidden: true,
-        goods: goods,
-      });
     })
+    wx.hideLoading()
+    if (res.code == 404 || res.code == 700) {
+      let newData = {
+        loadingMoreHidden: false
+      }
+      if (!append) {
+        newData.goods = []
+      }
+      this.setData(newData);
+      return
+    }
+    let goods = [];
+    if (append) {
+      goods = this.data.goods
+    }
+    for (var i = 0; i < res.data.result.length; i++) {
+      const item = res.data.result[i]
+      const hidden_goods_index = wx.getStorageSync('hidden_goods_index')
+      if (hidden_goods_index.indexOf(item.id) != -1) {
+        continue
+      }
+      goods.push(item);
+    }
+    this.setData({
+      loadingMoreHidden: true,
+      goods: goods,
+    });
   },
   getCoupons: function() {
     var that = this;
-    api.fetchRequest('/discounts/coupons').then(function (res) {
-      if (res.data.code == 0) {
+    // https://www.yuque.com/apifm/nu0f75/xmxf7y
+    WXAPI.coupons({
+      token: wx.getStorageSync('token')
+    }).then(function (res) {
+      if (res.code == 0) {
         that.setData({
-          hasNoCoupons: false,
-          coupons: res.data.data
+          coupons: res.data
         });
       }
     })
   },
-  gitCoupon: function(e) {
-    var that = this;
-    api.fetchRequest('/discounts/fetch', {
-      id: e.currentTarget.dataset.id,
-      token: wx.getStorageSync('token')
-    }).then(function (res) {
-      if (res.data.code == 20001 || res.data.code == 20002) {
-        wx.showModal({
-          title: '错误',
-          content: '来晚了',
-          showCancel: false
-        })
-        return;
-      }
-      if (res.data.code == 20003) {
-        wx.showModal({
-          title: '错误',
-          content: '你领过了，别贪心哦~',
-          showCancel: false
-        })
-        return;
-      }
-      if (res.data.code == 30001) {
-        wx.showModal({
-          title: '错误',
-          content: '您的积分不足',
-          showCancel: false
-        })
-        return;
-      }
-      if (res.data.code == 20004) {
-        wx.showModal({
-          title: '错误',
-          content: '已过期~',
-          showCancel: false
-        })
-        return;
-      }
-      if (res.data.code == 0) {
-        wx.showToast({
-          title: '领取成功，赶紧去下单吧~',
-          icon: 'success',
-          duration: 2000
-        })
-      } else {
-        wx.showModal({
-          title: '错误',
-          content: res.data.msg,
-          showCancel: false
-        })
-      }
-    })
-  },
-  onShareAppMessage: function() {
+  onShareAppMessage: function() {    
     return {
-      title: wx.getStorageSync('mallName') + '——' + CONFIG.shareProfile,
-      path: '/pages/index/index',
-      success: function(res) {
-        // 转发成功
-      },
-      fail: function(res) {
-        // 转发失败
-      }
+      title: '"' + wx.getStorageSync('mallName') + '" ' + wx.getStorageSync('share_profile'),
+      path: '/pages/index/index?inviter_id=' + wx.getStorageSync('uid')
+    }
+  },
+  onShareTimeline() {    
+    return {
+      title: '"' + wx.getStorageSync('mallName') + '" ' + wx.getStorageSync('share_profile'),
+      query: 'inviter_id=' + wx.getStorageSync('uid'),
+      imageUrl: wx.getStorageSync('share_pic')
     }
   },
   getNotice: function() {
     var that = this;
-    api.fetchRequest('/notice/list', {pageSize: 5}).then(function (res) {
-      if (res.data.code == 0) {
+    WXAPI.noticeList({pageSize: 5}).then(function (res) {
+      if (res.code == 0) {
         that.setData({
-          noticeList: res.data.data
+          noticeList: res.data
         });
       }
     })
-  },
-  listenerSearchInput: function(e) {
-    this.setData({
-      searchInput: e.detail.value
-    })
-
-  },
-  toSearch: function() {
-    this.setData({
-      curPage: 1
-    });
-    this.getGoodsList(this.data.activeCategoryId);
   },
   onReachBottom: function() {
     this.setData({
       curPage: this.data.curPage + 1
     });
-    this.getGoodsList(this.data.activeCategoryId, true)
+    this.getGoodsList(0, true)
   },
   onPullDownRefresh: function() {
     this.setData({
       curPage: 1
     });
-    this.getGoodsList(this.data.activeCategoryId)
-  }
+    this.getGoodsList(0)
+    wx.stopPullDownRefresh()
+  },
+  // 获取砍价商品
+  async kanjiaGoods(){
+    // https://www.yuque.com/apifm/nu0f75/wg5t98
+    const res = await WXAPI.goodsv2({
+      kanjia: true
+    });
+    if (res.code == 0) {
+      const kanjiaGoodsIds = []
+      res.data.result.forEach(ele => {
+        kanjiaGoodsIds.push(ele.id)
+      })
+      const goodsKanjiaSetRes = await WXAPI.kanjiaSet(kanjiaGoodsIds.join())
+      if (goodsKanjiaSetRes.code == 0) {
+        res.data.result.forEach(ele => {
+          const _process = goodsKanjiaSetRes.data.find(_set => {
+            return _set.goodsId == ele.id
+          })
+          if (_process) {
+            ele.process = 100 * _process.numberBuy / _process.number
+            ele.process = ele.process.toFixed(0)
+          }
+        })
+        this.setData({
+          kanjiaList: res.data.result
+        })
+      }
+    }
+  },
+  goCoupons: function (e) {
+    wx.switchTab({
+      url: "/pages/coupons/index"
+    })
+  },
+  pingtuanGoods(){ // 获取团购商品列表
+    const _this = this
+    // https://www.yuque.com/apifm/nu0f75/wg5t98
+    WXAPI.goodsv2({
+      pingtuan: true
+    }).then(res => {
+      if (res.code === 0) {
+        _this.setData({
+          pingtuanList: res.data.result
+        })
+      }
+    })
+  },
+  goSearch(){
+    wx.navigateTo({
+      url: '/pages/search/index'
+    })
+  },
+  goNotice(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/pages/notice/show?id=' + id,
+    })
+  },
+  async adPosition() {
+    let res = await WXAPI.adPosition('indexPop')
+    if (res.code == 0) {
+      this.setData({
+        adPositionIndexPop: res.data
+      })
+    }
+    res = await WXAPI.adPosition('index-live-pic')
+    if (res.code == 0) {
+      this.setData({
+        adPositionIndexLivePic: res.data
+      })
+    }
+  },
+  clickAdPositionIndexLive() {
+    if (!this.data.adPositionIndexLivePic || !this.data.adPositionIndexLivePic.url) {
+      return
+    }
+    wx.navigateTo({
+      url: this.data.adPositionIndexLivePic.url,
+    })
+  },
+  closeAdPositionIndexPop() {
+    this.setData({
+      adPositionIndexPop: null
+    })
+  },
+  clickAdPositionIndexPop() {
+    const adPositionIndexPop = this.data.adPositionIndexPop
+    this.setData({
+      adPositionIndexPop: null
+    })
+    if (!adPositionIndexPop || !adPositionIndexPop.url) {
+      return
+    }
+    wx.navigateTo({
+      url: adPositionIndexPop.url,
+    })
+  },
+  async cmsCategories() {
+    // https://www.yuque.com/apifm/nu0f75/slu10w
+    const res = await WXAPI.cmsCategories()
+    if (res.code == 0) {
+      const cmsCategories = res.data.filter(ele => {
+        return ele.type == 'index' // 只筛选类型为 index 的分类
+      })
+      this.setData({
+        cmsCategories
+      })
+    }
+  },
+  moretuijian() {
+    wx.navigateTo({
+      url: '/pages/goods/list?recommendStatus=1',
+    })
+  },
+  // 页面滚动监听，控制返回顶部按钮显示
+  onPageScroll(e) {
+    const showBackTop = e.scrollTop > 400
+    if (showBackTop !== this.data.showBackTop) {
+      this.setData({ showBackTop })
+    }
+  },
+  // 返回顶部
+  scrollToTop() {
+    wx.pageScrollTo({
+      scrollTop: 0,
+      duration: 300
+    })
+  },
+  // 企业微信客服（与商品详情页保持一致）
+  customerService() {
+    wx.openCustomerServiceChat({
+      extInfo: { url: wx.getStorageSync('customerServiceChatUrl') },
+      corpId: wx.getStorageSync('customerServiceChatCorpId'),
+      showMessageCard: true,
+      success(res) {},
+      fail(err) {
+        console.error('企业微信客服打开失败', err)
+        wx.showToast({ title: '客服暂不可用', icon: 'none' })
+      }
+    })
+  },
 })

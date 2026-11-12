@@ -1,179 +1,281 @@
-/**start.wxss**/
-page{
-  font-family: -apple-system-font, Helvetica Neue, Helvetica, sans-serif;
-  font-size: 10pt;
-  line-height: 150%;
-  min-height: 100%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-.container {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #69C3AA;
-  align-items: stretch;
-  padding: 0;
-  height: 100%;
+/* 京东风格 - 启动页样式 */
+
+/* 页面容器 */
+page {
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
-  justify-content: space-between;
-  box-sizing: border-box;
-} 
-.content{
-  flex: 1;
-  display: flex;
-  position: relative;
-  z-index: 10;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  padding-bottom: 450rpx;
-  background: -webkit-gradient(linear, left top, left bottom, from(rgba(244,244,244,0)), color-stop(0.1, #f4f4f4), to(#f4f4f4));
-  opacity: 0;
-  transform: translate3d(0,100%,0);
-  animation: rise 3s cubic-bezier(0.19, 1, 0.22, 1) .25s forwards;
+  background: #000;
 }
 
-.remind-box {
-  flex: 1;
+/* 启动页主容器 */
+.start-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 轮播图容器 */
+.swiper_box {
+  width: 100vw;
+  height: 100vh;
+}
+
+swiper-item {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 轮播项包装器 */
+.swiper-item-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* 轮播图片 */
+.banner-image {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+/* 图片渐变遮罩 - 京东风格 */
+.image-mask {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75));
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 左右切换按钮样式 - 优雅半透明风格 */
+.swiper-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 80rpx;
+  height: 80rpx;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20rpx);
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.swiper-icon.left-icon {
+  left: 40rpx;
+}
+
+.swiper-icon.right-icon {
+  right: 40rpx;
+}
+
+.swiper-icon:active {
+  transform: translateY(-50%) scale(0.9);
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+}
+
+.swiper-icon image {
+  width: 32rpx;
+  height: 32rpx;
+  filter: brightness(0) invert(1);
+}
+
+/* 指示器容器 */
+.dots-wrapper {
+  position: absolute;
+  bottom: 260rpx;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+}
+
+.dots-container {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 12rpx 24rpx;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10rpx);
+  border-radius: 40rpx;
+}
+
+/* 指示器小点 */
+.dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 指示器激活状态 - 京东红色 */
+.dot-active {
+  width: 48rpx;
+  height: 16rpx;
+  border-radius: 8rpx;
+  background: linear-gradient(90deg, #E93B3D, #FF6B6B);
+  box-shadow: 0 4rpx 12rpx rgba(233, 59, 61, 0.4);
+}
+
+/* 底部按钮区域 */
+.jump-btn-box {
+  position: absolute;
+  left: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 80rpx);
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  gap: 24rpx;
+}
+
+/* 进入按钮 - 京东风格 */
+.jump-btn {
+  position: relative;
+  padding: 28rpx 120rpx;
+  background: linear-gradient(135deg, #E93B3D 0%, #E61717 100%);
+  border-radius: 60rpx;
+  box-shadow: 0 12rpx 40rpx rgba(233, 59, 61, 0.45), 
+              0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.jump-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 8rpx 28rpx rgba(233, 59, 61, 0.4), 
+              0 2rpx 8rpx rgba(0, 0, 0, 0.2);
+}
+
+/* 按钮文字 */
+.btn-text {
+  position: relative;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  z-index: 2;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
+}
+
+/* 按钮光泽效果 */
+.btn-shine {
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 100%;
+  height: 200%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.3), 
+    transparent);
+  transform: skewX(-25deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  20% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* 提示文字 */
+.skip-hint {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 24rpx;
+  letter-spacing: 1rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+  animation: breath 2s ease-in-out infinite;
+}
+
+@keyframes breath {
+  0%, 100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 全屏加载效果样式 */
+.loading-container {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-bottom: 300rpx;
-}
-.remind-img {
-  width: 250rpx;
-  height: 250rpx;
-  padding-bottom: 25rpx;
-}
-
-@keyframes rise{
-  0% {opacity: 0;transform: translate3d(0,100%,0);}
-  50% {opacity: 1;}
-  100% {opacity: 1;transform: translate3d(0,450rpx,0);}
-}
-.title{
-  position: absolute;
-  top: 30rpx;
-  left: 50%;
-  width: 600rpx;
-  height: 200rpx;
-  margin-left: -300rpx;
-  opacity: 0;
-  animation: show 2.5s cubic-bezier(0.19, 1, 0.22, 1) .5s forwards;
-}
-
-.smalltitle{
-  position: absolute;
-  top: 50rpx;
-  left: 50%;
-  width: 600rpx;
-  height: 200rpx;
-  margin-left: -300rpx;
-  opacity: 0;
-  animation: show 2.5s cubic-bezier(0.19, 1, 0.22, 1) .5s forwards;
-}
-
-@keyframes show{
-  0% {opacity: 0;}
-  100% {opacity: .95;}
-}
-
-.hd {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 1000rpx;
-  margin-left: -500rpx;
-  height: 200rpx;
-  transition: all .35s ease;
-}
-.logo {
-  position: absolute;
-  z-index: 2;
-  left: 50%;
-  bottom: 200rpx;
-  width: 160rpx;
-  height: 160rpx;
-  margin-left: -80rpx;
-  border-radius: 160rpx;
-  animation: sway 10s ease-in-out infinite;
-  opacity: .95;
-}
-@keyframes sway{
-  0% {transform: translate3d(0,20rpx,0) rotate(-15deg); }
-  17% {transform: translate3d(0,0rpx,0) rotate(25deg); }
-  34% {transform: translate3d(0,-20rpx,0) rotate(-20deg); }
-  50% {transform: translate3d(0,-10rpx,0) rotate(15deg); }
-  67% {transform: translate3d(0,10rpx,0) rotate(-25deg); }
-  84% {transform: translate3d(0,15rpx,0) rotate(15deg); }
-  100% {transform: translate3d(0,20rpx,0) rotate(-15deg); }
-}
-.wave {
-  position: absolute;
-  z-index: 3;
-  right: 0;
-  bottom: 0;
-  opacity: 0.725;
-  height: 260rpx;
-  width: 2250rpx;
-  animation: wave 10s linear infinite;
-}
-.wave-bg {
-  z-index: 1;
-  animation: wave-bg 10.25s linear infinite;
-}
-@keyframes wave{
-  from {transform: translate3d(125rpx,0,0);}
-  to {transform: translate3d(1125rpx,0,0);}
-}
-@keyframes wave-bg{
-  from {transform: translate3d(375rpx,0,0);}
-  to {transform: translate3d(1375rpx,0,0);}
-}
-
-.bd {
   position: relative;
-  flex: 1;
+}
+
+/* 加载动画容器 */
+.loading-spinner-wrapper {
+  width: 120rpx;
+  height: 120rpx;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  animation: bd-rise 2s cubic-bezier(0.23,1,0.32,1) .75s forwards;
-  opacity: 0;
-}
-@keyframes bd-rise{
-  from {opacity: 0; transform: translate3d(0,60rpx,0); }
-  to {opacity: 1; transform: translate3d(0,0,0); }
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 60rpx;
 }
 
-.confirm-btn {
-  font-size: 13pt;
-  line-height: 85rpx;
-  height: 85rpx;
-  background: #69C3AA;
-  color: #fff;
-  text-align: center;
-  border-radius: 100rpx;
-  margin: 40% 20%;
-}
-.confirm-btn:active {
-  opacity: .8;
+/* 旋转加载图标 */
+.loading-spinner {
+  width: 80rpx;
+  height: 80rpx;
+  border: 6rpx solid rgba(255, 255, 255, 0.1);
+  border-top: 6rpx solid #E93B3D;
+  border-radius: 50%;
+  animation: loading-spin 1.5s linear infinite;
 }
 
-
-.copyright {
+/* 加载文字 */
+.loading-text {
+  color: rgba(255, 255, 255, 0.8);
   font-size: 28rpx;
-  color: #999;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 30rpx;
-  text-align: center;
+  font-weight: 400;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+  animation: loading-text-fade 2s ease-in-out infinite;
+}
+
+/* 加载图标旋转动画 */
+@keyframes loading-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 加载文字淡化动画 */
+@keyframes loading-text-fade {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
